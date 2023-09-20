@@ -2,34 +2,52 @@ package main
 
 import (
 	"context"
-	_ "github.com/mattn/go-sqlite3"
+	"fmt"
+	"github.com/jmoiron/sqlx"
+	"go.uber.org/fx"
 	"golang-programming/dependency-injection/configuration"
 	"golang-programming/dependency-injection/database"
 	"golang-programming/dependency-injection/repository"
 )
 
 func main() {
-	var err error
-	ctx := context.Background()
-	// Load configuration
-	config, err := configuration.Load("./dependency-injection/config.yaml")
-	if err != nil {
-		panic(err)
-	}
-	// Create database connection
-	db, err := database.CreateSqliteConnection(ctx, config)
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
+	App := fx.New(
+		fx.Provide(
+			context.Background,
+			configuration.New,
+			database.CreateSqliteConnection,
+			repository.New,
+		),
+		fx.Invoke(
+			configureLifeCycleHooks,
+		),
+	)
 
-	repo, err := repository.New(db)
-	if err != nil {
-		panic(err)
-	}
+	App.Run()
+}
 
-	err = repo.SaveUser(ctx, "John", "Doe")
-	if err != nil {
-		panic(err)
-	}
+func configureLifeCycleHooks(lc fx.Lifecycle, db *sqlx.DB, repo *repository.Repository) {
+	lc.Append(
+		fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				fmt.Println("Starting database connection")
+
+				// Inserting some data
+				err := repo.SaveUser(ctx, "David", "Consa", 32)
+				if err != nil {
+					return err
+				}
+				users, err := repo.GetUsers(ctx)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("Users: %#v\n", users)
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				fmt.Println("Closing database connection")
+				return db.Close()
+			},
+		},
+	)
 }

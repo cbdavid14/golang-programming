@@ -3,38 +3,37 @@ package repository
 import "context"
 
 type User struct {
-	ID       int64
-	FistName string
-	LastName string
-	Age      int
+	ID       int64  `db:"ID"`
+	FistName string `db:"firstName"`
+	LastName string `db:"lastName"`
+	Age      int    `db:"age"`
 }
 
 const (
-	qryInsertUser  = `INSERT INTO users (firstName, lastName) VALUES (?, ?)`
-	qryGetUserById = `SELECT * FROM users WHERE id = ?`
+	qryInsertUser  = `INSERT INTO users (firstName, lastName, age) VALUES (?, ?, ?)`
+	qryGetUserById = `SELECT * FROM users WHERE ID = ?`
 	qryGetUsers    = `SELECT * FROM users`
 )
 
 func (r *Repository) GetUserByID(ctx context.Context, id int64) (*User, error) {
-	u := &User{}
-	err := r.db.GetContext(ctx, u, qryGetUserById, id)
+	var u User
+	err := r.db.GetContext(ctx, &u, qryGetUserById, id)
 	if err != nil {
 		return nil, err
 	}
-	return u, nil
+	return &u, nil
 }
 
-func (r *Repository) getUsers(ctx context.Context) ([]*User, error) {
-	var users []*User
+func (r *Repository) GetUsers(ctx context.Context) ([]User, error) {
+	var users []User
 	err := r.db.SelectContext(ctx, &users, qryGetUsers)
 	if err != nil {
-		return nil, err
+		return users, err
 	}
 	return users, nil
 }
-
-func (r *Repository) SaveUser(ctx context.Context, FirstName string, LastName string) error {
-	_, err := r.db.ExecContext(ctx, qryInsertUser, FirstName, LastName)
+func (r *Repository) SaveUser(ctx context.Context, firstName string, lastName string, age int64) error {
+	_, err := r.db.ExecContext(ctx, qryInsertUser, firstName, lastName, age)
 	if err != nil {
 		return err
 	}

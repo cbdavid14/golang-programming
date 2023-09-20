@@ -24,6 +24,8 @@ type Configuration struct {
 	DB  Database `yaml:"database"`
 }
 
+const defaultPath = "./dependency-injection/config.yaml"
+
 func Load(filename string) (*Configuration, error) {
 	var c Configuration
 	file, err := os.ReadFile(filename)
@@ -35,4 +37,8 @@ func Load(filename string) (*Configuration, error) {
 	}
 	fmt.Printf("Configuration: %#v\n", &c)
 	return &c, nil
+}
+
+func New() (*Configuration, error) {
+	return Load(defaultPath)
 }
